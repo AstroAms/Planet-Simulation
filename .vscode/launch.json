@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "PlanetSimulation",
+            "request": "launch",
+            "mainClass": "main.java.PlanetSimulation",
+            "projectName": "MyProject_c0d058ab"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "main.java.Main",
+            "projectName": "MyProject_c0d058ab"
+        },
+        {
+            "type": "java",
+            "name": "Launch PlanetSimulation",
+            "request": "launch",
+            "mainClass": "PlanetSimulation",
+            "vmArgs": "--module-path C:/Users/astro/Desktop/MyProject/lib --add-modules javafx.controls,javafx.fxml,javafx.graphics --enable-native-access=javafx.graphics -Dprism.order=sw -Dprism.verbose=true -Djava.library.path=C:/Users/astro/Desktop/javafx-sdk-25/bin"
+        }
+    ]
+}
