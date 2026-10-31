@@ -198,30 +198,6 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
         }
         sunGeom.setMaterial(sunMat);
         rootNode.attachChild(sunGeom);
-
-        // Sun Corona Glow Billboard
-        float glowSize = sunRadius * 4.4f;
-        Quad glowQuad = new Quad(glowSize, glowSize);
-        Geometry glowGeom = new Geometry("SunCorona", glowQuad);
-        Material glowMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        try {
-            Texture glowTex = assetManager.loadTexture(new TextureKey("textures/sun_glow.png", false));
-            glowMat.setTexture("ColorMap", glowTex);
-        } catch (Exception e) {
-            glowMat.setColor("Color", new ColorRGBA(1f, 0.8f, 0.2f, 0.4f));
-        }
-        glowMat.getAdditionalRenderState().setBlendMode(BlendMode.Additive);
-        glowMat.getAdditionalRenderState().setDepthWrite(false);
-        glowGeom.setMaterial(glowMat);
-        glowGeom.setQueueBucket(RenderQueue.Bucket.Transparent);
-        glowGeom.setLocalTranslation(-glowSize * 0.5f, -glowSize * 0.5f, 0);
-
-        Node billboardNode = new Node("SunGlowNode");
-        billboardNode.attachChild(glowGeom);
-        BillboardControl bb = new BillboardControl();
-        bb.setAlignment(BillboardControl.Alignment.Camera);
-        billboardNode.addControl(bb);
-        rootNode.attachChild(billboardNode);
     }
 
     private void setupLighting() {
