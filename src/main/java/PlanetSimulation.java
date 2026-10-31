@@ -63,6 +63,7 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
         public float currentOrbitAngle;
         public Node orbitNode;
         public Node tiltNode;
+        public Node spinNode;
         public Geometry planetGeom;
         public Geometry orbitLineGeom;
 
@@ -80,9 +81,11 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
     }
 
     private final List<PlanetData> planets = new ArrayList<>();
+    private Node sunSpinNode;
     private Geometry sunGeom;
     private Node earthNode;
     private Node moonNode;
+    private Node moonSpinNode;
     private Geometry moonGeom;
     private float moonAngle = 0f;
     private final float moonDist = 1.35f;
@@ -187,8 +190,14 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
 
     private void createSun() {
         float sunRadius = 3.2f;
+        sunSpinNode = new Node("SunSpinNode");
+        rootNode.attachChild(sunSpinNode);
+
         Sphere sunMesh = new Sphere(48, 48, sunRadius);
         sunGeom = new Geometry("Sun", sunMesh);
+        // Align poles with Y axis (UP) so equator lies in orbital plane
+        sunGeom.rotate(-FastMath.HALF_PI, 0, 0);
+
         Material sunMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         try {
             Texture sunTex = assetManager.loadTexture(new TextureKey("textures/sun.jpg", false));
@@ -197,7 +206,7 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
             sunMat.setColor("Color", new ColorRGBA(1f, 0.85f, 0.3f, 1f));
         }
         sunGeom.setMaterial(sunMat);
-        rootNode.attachChild(sunGeom);
+        sunSpinNode.attachChild(sunGeom);
     }
 
     private void setupLighting() {
@@ -247,9 +256,16 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
             p.tiltNode.setLocalRotation(tiltRot);
             p.orbitNode.attachChild(p.tiltNode);
 
+            // Polar Spin Node (spins around local Y axis, which is the planet's polar axis)
+            p.spinNode = new Node(p.name + "_SpinNode");
+            p.tiltNode.attachChild(p.spinNode);
+
             // Planet Mesh & Material
             Sphere sphere = new Sphere(40, 40, p.planetRadius);
             p.planetGeom = new Geometry(p.name, sphere);
+            // Align sphere's polar axis with +Y (UP) so equator lies in horizontal plane
+            p.planetGeom.rotate(-FastMath.HALF_PI, 0, 0);
+
             Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
             try {
                 Texture tex = assetManager.loadTexture(new TextureKey(p.texturePath, false));
@@ -262,7 +278,7 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
             mat.setColor("Ambient", new ColorRGBA(0.2f, 0.2f, 0.25f, 1f));
             mat.setFloat("Shininess", 16f);
             p.planetGeom.setMaterial(mat);
-            p.tiltNode.attachChild(p.planetGeom);
+            p.spinNode.attachChild(p.planetGeom);
 
             // Earth special: Add Moon
             if ("Earth".equals(p.name)) {
@@ -275,8 +291,12 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
                 moonOrbitLine.getMaterial().setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.12f));
                 moonNode.attachChild(moonOrbitLine);
 
+                moonSpinNode = new Node("MoonSpinNode");
+                moonNode.attachChild(moonSpinNode);
+
                 Sphere moonMesh = new Sphere(24, 24, moonRadius);
                 moonGeom = new Geometry("Moon", moonMesh);
+                moonGeom.rotate(-FastMath.HALF_PI, 0, 0); // Align Moon poles with UP
                 Material moonMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
                 try {
                     Texture moonTex = assetManager.loadTexture(new TextureKey("textures/moon.jpg", false));
@@ -288,8 +308,8 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
                 moonMat.setColor("Diffuse", ColorRGBA.White);
                 moonMat.setColor("Ambient", new ColorRGBA(0.2f, 0.2f, 0.25f, 1f));
                 moonGeom.setMaterial(moonMat);
-                moonNode.attachChild(moonGeom);
-                moonGeom.setLocalTranslation(moonDist, 0, 0);
+                moonSpinNode.attachChild(moonGeom);
+                moonSpinNode.setLocalTranslation(moonDist, 0, 0);
             }
 
             // Saturn special: Add Rings
@@ -516,30 +536,32 @@ public class PlanetSimulation extends SimpleApplication implements ActionListene
     public void simpleUpdate(float tpf) {
         float effectiveTpf = isPaused ? 0 : tpf * timeMultiplier;
 
-        // Rotate Sun
-        if (sunGeom != null && effectiveTpf > 0) {
-            sunGeom.rotate(0, effectiveTpf * 0.12f, 0);
+        // Rotate Sun on upright polar axis
+        if (sunSpinNode != null && effectiveTpf > 0) {
+            sunSpinNode.rotate(0, effectiveTpf * 0.12f, 0);
         }
 
         // Update Planets
         for (PlanetData p : planets) {
             if (effectiveTpf > 0) {
-                // Orbit revolution
+                // Orbit revolution around Sun
                 p.currentOrbitAngle += p.orbitSpeed * effectiveTpf * 0.4f;
                 updatePlanetPosition(p);
 
-                // Axial rotation
-                p.planetGeom.rotate(0, p.rotationSpeed * effectiveTpf, 0);
+                // Axial rotation around planet's north-south polar axis
+                if (p.spinNode != null) {
+                    p.spinNode.rotate(0, p.rotationSpeed * effectiveTpf, 0);
+                }
             }
         }
 
         // Update Earth's Moon
-        if (moonGeom != null && effectiveTpf > 0) {
+        if (moonSpinNode != null && effectiveTpf > 0) {
             moonAngle += moonSpeed * effectiveTpf * 0.4f;
             float mx = moonDist * FastMath.cos(moonAngle);
             float mz = moonDist * FastMath.sin(moonAngle);
-            moonGeom.setLocalTranslation(mx, 0, mz);
-            moonGeom.rotate(0, effectiveTpf * 0.8f, 0);
+            moonSpinNode.setLocalTranslation(mx, 0, mz);
+            moonSpinNode.rotate(0, effectiveTpf * 0.8f, 0);
         }
 
         // Camera Tracking if focused
